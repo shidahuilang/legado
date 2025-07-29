@@ -1,0 +1,180 @@
+name: Android CI
+
+on: 
+  schedule:
+    - cron: 0 17 1,11,21 * *
+  workflow_dispatch:
+
+jobs:
+  check_release:
+    if: github.repository_owner == github.actor
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: 检查最新标签
+      shell: bash
+      env:
+        SECRETS_MINIFY: ${{ secrets.MINIFY }}
+        SECRETS_RENAME: ${{ secrets.RENAME }}
+      run: source $GITHUB_WORKSPACE/action_schedule.sh
+    
+    - name: 检查是否发布新版
+      id: check_release
+      shell: bash
+      run: |
+        function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
+        # if version_gt $APP_LATEST_TAG $APP_LAST_TAG; then
+          git clone $APP_GIT_URL $APP_WORKSPACE
+          cd $APP_WORKSPACE
+          git checkout $LATEST_TAG 
+          echo "if_release=true" >>$GITHUB_OUTPUT
+        # fi
+        
+    - name: 覆盖 directLinkUpload.json
+      if: steps.check_release.outputs.if_release == 'true'
+      run: |
+        cp $GITHUB_WORKSPACE/diy/directLinkUpload.json $APP_WORKSPACE/app/src/main/assets/defaultData/directLinkUpload.json
+        
+    - name: 设置 JDK 17
+      if: steps.check_release.outputs.if_release == 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 17
+        
+    - name: 设置 Gradle
+      if: steps.check_release.outputs.if_release == 'true'
+      uses: gradle/gradle-build-action@v3
+      
+    - name: 编译 APK
+      id: build_apk
+      if: steps.check_release.outputs.if_release == 'true'
+      shell: bash
+      run: |
+        echo "⏳ 修改 app_name 为 阅读.A"
+        sed -i 's/<string name=\"app_name\">阅读<\/string>/<string name=\"app_name\">阅读.A<\/string>/' \
+        $APP_WORKSPACE/app/src/main/res/values/strings.xml || true
+        sed -i 's/<string name=\"app_name\">阅读<\/string>/<string name=\"app_name\">阅读.A<\/string>/' \
+        $APP_WORKSPACE/app/src/main/res/values-zh/strings.xml || true
+        echo "✅ 修改完成"
+
+        source $GITHUB_WORKSPACE/action_app_custom.sh
+        source $GITHUB_WORKSPACE/action_app_build.sh
+        source $GITHUB_WORKSPACE/action_legado_myself.sh       
+        app_build
+
+    - name: 上传 APK
+      uses: actions/upload-artifact@main
+      with:
+        name: ${{ env.APP_UPLOAD_NAME }}
+        path: ${{ env.APP_UPLOAD }}/*.apk
+
+    - name: 发布 APK
+      if: steps.check_release.outputs.if_release == 'true'
+      id: release_apk
+      shell: bash
+      run: |
+        function set_env() { echo "$1=$2" >> $GITHUB_ENV; }
+        if [ -f $APP_BUILD_APK ]; then
+            echo "if_publish=true" >>$GITHUB_OUTPUT
+            set_env APP_RELEASE_NAME $APP_UPLOAD_NAME.apk
+            set_env APP_RELEASE      $APP_BUILD_APK
+        fi
+
+    - name: 创建 release
+      id: create_release
+      if: steps.release_apk.outputs.if_publish == 'true'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.APP_UPLOAD_NAME }}
+        release_name: ${{ env.APP_UPLOAD_NAME }}
+        body_path: ${{ env.APP_LATEST_BODY }}
+        draft: false
+        prerelease: false
+    
+    - name: 上传 release 文件
+      id: upload-release-asset 
+      if: steps.release_apk.outputs.if_publish == 'true'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ${{ env.APP_RELEASE }}
+        asset_name: ${{ env.APP_RELEASE_NAME }}
+        asset_content_type: application/vnd.android.package-archive
+
+
+    - name: 删除运行记录
+      uses: Mattraks/delete-workflow-runs@v2
+      with:
+        retain_days: 30     #保留最后多少记录不删除
+        keep_minimum_runs: 0
+
+    - name: 删除自动发布的旧固件
+      uses: shidahuilang/delete-older-releases@main
+      with:
+        keep_latest: 20         #保留多少个releases不删除
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+
+
+  build_apk:
+    if: github.repository_owner == github.actor
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: 17
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2.4.2
+
+    - name: Set Environment Variables
+      shell: bash
+      env:
+        SECRETS_APP_NAME: "阅读"
+        SECRETS_GIT_URL: "https://github.com/gedoor/legado.git"
+        SECRETS_CHANNEL: "App"
+        SECRETS_SUFFIX: "A"
+        SECRETS_LAUNCH_NAME: "阅读.A"
+        SECRETS_RENAME: "true"
+        SECRETS_MINIFY: "false"
+        REPO_OWNER: ${{ github.repository_owner }}
+        REPO_ACTOR: ${{ github.actor }}
+      run: |
+        source $GITHUB_WORKSPACE/action_setenv.sh
+
+    - name: Clone Source Code
+      shell: bash
+      run: |
+        source $GITHUB_WORKSPACE/action_clone.sh
+
+
+    - name: Customize App (阅读.A)
+      shell: bash
+      run: |
+        echo "📦 修改 app_name → 阅读.A"
+        sed -i 's/<string name="app_name">阅读<\/string>/<string name="app_name">阅读.A<\/string>/' \
+          app/src/main/res/values-zh/strings.xml || true
+        echo "✅ 应用显示名称修改完成"
+    - name: Build APK
+      shell: bash
+      run: |
+        source $GITHUB_WORKSPACE/action_app_build.sh
+        app_build
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: "ReaderA"
+        path: ${{ env.APP_UPLOAD }}

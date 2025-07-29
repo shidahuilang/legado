@@ -1,0 +1,8 @@
+[
+  {
+    "compress": false,
+    "downloadUrlRule": "$.data@js:if (result == '') \n '' \n else \n 'https://sy.doubi.tk/shuyuan/' + result",
+    "summary": "大灰狼直链",
+    "uploadUrl": "https://sy.doubi.tk/shuyuan,{\"method\":\"POST\",\"body\": {\"file\": \"fileRequest\"},\"type\": \"multipart/form-data\"}"
+  }
+]
