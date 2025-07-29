@@ -45,10 +45,9 @@ jobs:
     - name: 替换直链配置
       shell: bash
       run: |
-        TARGET_DIR="app_src/app/src/main/assets/defaultData"
-        mkdir -p "$TARGET_DIR"
-        cp "$GITHUB_WORKSPACE/diy/directLinkUpload.json" "$TARGET_DIR/directLinkUpload.json"
-        echo "✅ 已成功替换 directLinkUpload.json"
+       mkdir -p $APP_WORKSPACE/app/src/main/assets/defaultData
+       cp $GITHUB_WORKSPACE/diy/directLinkUpload.json \
+       $APP_WORKSPACE/app/src/main/assets/defaultData/directLinkUpload.json
 
            
     - name: 自定义应用（阅读.A, 共存包）
