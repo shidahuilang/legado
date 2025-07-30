@@ -2,7 +2,7 @@ name: 检查上游更新
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时检查一次
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: 检出本仓库
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
 
       - name: 获取上游最新 commit
         env:
