@@ -1,4 +1,4 @@
-name: 检查上游更新（gedoor/legado:master）
+name: 检查上游更新
 
 on:
   schedule:
