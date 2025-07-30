@@ -1,0 +1,33 @@
+name: 检查上游更新（gedoor/legado:master）
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小时检查一次
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 检出本仓库
+      uses: actions/checkout@v4
+
+    - name: 获取上游最新 commit
+      run: |
+        LATEST_COMMIT=$(git ls-remote https://github.com/gedoor/legado.git refs/heads/master | cut -f1)
+        echo "最新上游提交: $LATEST_COMMIT"
+
+        LAST_COMMIT=$(cat .last_upstream_commit 2>/dev/null || echo none)
+        echo "之前记录提交: $LAST_COMMIT"
+
+        if [ "$LATEST_COMMIT" != "$LAST_COMMIT" ]; then
+          echo "$LATEST_COMMIT" > .last_upstream_commit
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .last_upstream_commit
+          git commit -m "trigger: upstream updated to $LATEST_COMMIT"
+          git push
+        else
+          echo "无更新，跳过构建。"
