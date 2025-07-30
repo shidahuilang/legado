@@ -2,7 +2,7 @@ name: 检查上游更新
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时检查一次
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -35,6 +35,8 @@ jobs:
             git config user.email "github-actions@github.com"
             git add .last_upstream_commit
             git commit -m "trigger: upstream updated to $LATEST_COMMIT"
+
+            git remote set-url origin https://x-access-token:${{ secrets.MY_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             git push
           else
             echo "无更新，跳过构建。"
