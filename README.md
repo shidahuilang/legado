@@ -3,7 +3,7 @@
 
 > 最新构建下载:
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/db-one/gedoor-Build?style=for-the-badge&label=固阅读.legado下载)](https://github.com/shidahuilang/legado/releases)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/shidahuilang/legado?style=for-the-badge&label=固阅读.legado下载)](https://github.com/shidahuilang/legado/releases)
 
 
 
