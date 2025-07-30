@@ -55,7 +55,7 @@ jobs:
       run: |
         source $GITHUB_WORKSPACE/action_app_custom.sh
 
-    - name: 可选增强（图标 / 默认配置 / JS 增强）
+    - name: （图标 / 默认配置 / JS 增强）
       shell: bash
       run: |
         source $GITHUB_WORKSPACE/action_legado_myself.sh
