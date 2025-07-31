@@ -1,5 +1,11 @@
 [
   {
+  "compress": false,
+  "downloadUrlRule": "$.data@js:if (result == '') \n '' \n else \n 'https://ycoo.net/' + result",
+  "summary": "源社区云盘",
+  "uploadUrl": "https://ycoo.net/plugin.php?id=bphp_clouds:upload&token=你的token,{\"method\":\"POST\",\"body\": {\"file\": \"fileRequest\"},\"type\": \"multipart/form-data\"}"
+}，
+  {
     "compress": false,
     "downloadUrlRule": "$.data@js:if (result == '') \n '' \n else \n 'https://sy.doubi.tk/shuyuan/' + result",
     "summary": "大灰狼直链",
