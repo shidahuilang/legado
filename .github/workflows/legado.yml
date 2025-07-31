@@ -19,8 +19,8 @@ jobs:
         distribution: 'temurin'
         java-version: 17
 
-    - name: 配置 Gradle 缓存
-      uses: gradle/gradle-build-action@v3
+#    - name: 配置 Gradle 缓存
+#      uses: gradle/gradle-build-action@v3
 
     - name: 设置构建参数（app 名 / 包名 / 后缀）
       shell: bash
