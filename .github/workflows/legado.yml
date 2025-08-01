@@ -1,4 +1,4 @@
-name: 构建 阅读.A APK
+name: 构建 阅读.Pro APK
 
 on:
   workflow_dispatch:
