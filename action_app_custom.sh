@@ -20,23 +20,28 @@ function app_clear_18plus() {
 function app_rename() {
     if [ "$SECRETS_RENAME" = "true" ]; then
         debug "✏️ 修改 app_name 为 $APP_LAUNCH_NAME"
-        sed -i "s/<string name=\"app_name\">阅读<\/string>/<string name=\"app_name\">$APP_LAUNCH_NAME<\/string>/"             $APP_WORKSPACE/app/src/main/res/values-zh/strings.xml || true
-        sed -i "s/<string name=\"app_name\">阅读<\/string>/<string name=\"app_name\">$APP_LAUNCH_NAME<\/string>/"             $APP_WORKSPACE/app/src/main/res/values/strings.xml || true
+        for file in "$APP_WORKSPACE/app/src/main/res/values"/strings.xml "$APP_WORKSPACE/app/src/main/res/values-zh"/strings.xml; do
+            if [ -f "$file" ]; then
+                sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">$APP_LAUNCH_NAME</string>|" "$file" || true
+            fi
+        done
     fi
 }
 
-# 设置共存包名后缀（applicationIdSuffix）
+# 共存包名配置
 function app_enable_coexist() {
-    debug "📦 设置共存 applicationIdSuffix → .$APP_SUFFIX"
-    sed -i "s/applicationIdSuffix \".*\"/applicationIdSuffix \".$APP_SUFFIX\"/" $APP_WORKSPACE/app/build.gradle || true
-    if ! grep -q "applicationIdSuffix" $APP_WORKSPACE/app/build.gradle; then
-        sed -i "/defaultConfig {/a\
-        applicationIdSuffix \".$APP_SUFFIX\" 
-        " $APP_WORKSPACE/app/build.gradle
-    fi
+    debug "📦 强制设置 applicationId 和 applicationIdSuffix"
+
+    # 删除旧配置
+    sed -i '/applicationIdSuffix/d' $APP_WORKSPACE/app/build.gradle
+    sed -i '/applicationId "/d' $APP_WORKSPACE/app/build.gradle
+
+    # 插入 applicationId 和 Suffix
+    sed -i "/defaultConfig {/a\        applicationId \"io.legado.app\"\n        applicationIdSuffix \".$APP_SUFFIX\"" \
+        $APP_WORKSPACE/app/build.gradle
 }
 
-# Room schema → assets (避免构建失败)
+# Room schema 配置
 function app_patch_room_assets() {
     debug "📚 添加 Room schema 到 assets"
     sed -i "/sourceSets {/,/main {/s|main {|main {\n            assets.srcDirs += files(\"\\$projectDir/schemas\")|" "$APP_WORKSPACE/app/build.gradle"
@@ -47,14 +52,51 @@ function app_minify() {
     if [ "$SECRETS_MINIFY" = "true" ]; then
         debug "📦 启用 minify 和 shrinkResources"
         sed -e '/minifyEnabled/i\
-            shrinkResources true'             -e 's/minifyEnabled false/minifyEnabled true/'             $APP_WORKSPACE/app/build.gradle -i
+            shrinkResources true' \
+            -e 's/minifyEnabled false/minifyEnabled true/' \
+            $APP_WORKSPACE/app/build.gradle -i
     fi
 }
 
-# 移除 Firebase 等插件（防止构建失败）
+# Firebase/Google 插件
 function app_disable_plugins() {
-    debug "🚫 移除 firebase/google 插件"
-    sed -e '/com.google.gms.google-services/d'         -e '/com.google.firebase/d'         -e '/io.fabric/d'         $APP_WORKSPACE/app/build.gradle -i || true
+    debug "🚫 删除 google-services 等插件"
+
+    # 删除 app/build.gradle 中相关行
+    sed -i -e "/com.google.gms.google-services/d" \
+           -e "/com.google.firebase/d" \
+           -e "/io.fabric/d" \
+           -e "/apply plugin: 'com.google.gms.google-services'/d" \
+           -e "/apply plugin: 'com.google.firebase.crashlytics'/d" \
+           -e "/id 'com.google.gms.google-services'/d" \
+           -e "/id 'com.google.firebase.crashlytics'/d" \
+           $APP_WORKSPACE/app/build.gradle || true
+
+    # 删除根级 build.gradle 的 classpath
+    sed -i -e "/classpath 'com.google.gms:google-services/d" \
+           -e "/classpath 'com.google.firebase:firebase-crashlytics-gradle/d" \
+           $APP_WORKSPACE/build.gradle || true
+
+    # 删除 gradle.properties 中关联配置
+    sed -i '/firebaseCrashlyticsCollectionEnabled/d' $APP_WORKSPACE/gradle.properties || true
+    sed -i '/googleServices.disableVersionCheck/d' $APP_WORKSPACE/gradle.properties || true
+
+    # 删除 google-services.json
+    rm -f $APP_WORKSPACE/app/google-services.json || true
+
+    sed -i "/androidx.appcompat/a\    implementation 'androidx.documentfile:documentfile:1.0.1'" \
+        $APP_WORKSPACE/app/build.gradle || true
+
+    # patch 禁用 Gradle 进程中的构建任务
+    cat <<'EOF' >> $APP_WORKSPACE/app/build.gradle
+// 🔻 patch: 禁用 google-services 相关任务
+gradle.taskGraph.whenReady {
+    tasks.findAll { it.name ==~ /process.*GoogleServices/ }.each {
+        it.enabled = false
+        println "🚫 Firebase GoogleServices task 被禁用：\${it.name}"
+    }
+}
+EOF
 }
 
 # 删除多余资源
