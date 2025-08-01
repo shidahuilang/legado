@@ -28,8 +28,8 @@ jobs:
         SECRETS_APP_NAME: "阅读"
         SECRETS_GIT_URL: "https://github.com/gedoor/legado.git"
         SECRETS_CHANNEL: "App"
-        SECRETS_SUFFIX: "A"
-        SECRETS_LAUNCH_NAME: "阅读.A"
+        SECRETS_SUFFIX: "Pro"
+        SECRETS_LAUNCH_NAME: "阅读.Pro"
         SECRETS_RENAME: "true"
         SECRETS_MINIFY: "false"
         REPO_OWNER: ${{ github.repository_owner }}
