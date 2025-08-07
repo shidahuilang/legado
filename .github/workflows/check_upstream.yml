@@ -48,7 +48,7 @@ jobs:
               -H "Authorization: token $MY_GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               -H "Content-Type: application/json" \
-              -d '{"ref_type":"branch","ref_name":"main","inputs":{}}' \
+              -d '{"ref":"main","inputs":{}}' \
               https://api.github.com/repos/${{ github.repository }}/actions/workflows/legado.yml/dispatches
           else
             echo "无更新，跳过构建。"
