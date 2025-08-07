@@ -2,8 +2,8 @@ name: 检查上游更新
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'  # 每小时的第0分钟触发
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   check:
@@ -42,6 +42,14 @@ jobs:
 
             git remote set-url origin https://x-access-token:$MY_GITHUB_TOKEN@github.com/${{ github.repository }}.git
             git push
+
+            # 触发 legado.yml 工作流
+            curl -X POST \
+              -H "Authorization: token $MY_GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Content-Type: application/json" \
+              -d '{"ref_type":"branch","ref_name":"main","inputs":{}}' \
+              https://api.github.com/repos/${{ github.repository }}/dispatches/legado
           else
             echo "无更新，跳过构建。"
           fi
