@@ -49,7 +49,7 @@ jobs:
               -H "Accept: application/vnd.github.v3+json" \
               -H "Content-Type: application/json" \
               -d '{"ref_type":"branch","ref_name":"main","inputs":{}}' \
-              https://api.github.com/repos/${{ github.repository }}/dispatches/legado
+              https://api.github.com/repos/${{ github.repository }}/actions/workflows/legado.yml/dispatches
           else
             echo "无更新，跳过构建。"
           fi
