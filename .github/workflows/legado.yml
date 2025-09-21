@@ -2,6 +2,11 @@ name: 构建阅读.Pro APK
 
 on:
   workflow_dispatch:  # 允许手动触发
+  push:
+    paths:
+      - '.last_upstream_commit'  # 当检测到上游更新时触发
+    branches:
+      - master  # 只在 master 分支上触发
 
 jobs:
   build_readera:
